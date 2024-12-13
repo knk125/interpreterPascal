@@ -1,4 +1,4 @@
-INTEGER,PLUS,EOF = 'INTEGER','PLUS','EOF','EMPTY'
+INTEGER,PLUS,EOF,EMPTY = 'INTEGER','PLUS','EOF','EMPTY'
 
 class Token(object):
 
@@ -54,6 +54,11 @@ class Interpreter(object):
             self.pos +=1
             return token
         
+        if current_char == ' ':
+            token = Token(EMPTY, current_char)
+            self.pos +=1
+            return token
+        
         
         
 
@@ -76,11 +81,16 @@ class Interpreter(object):
             
             left.append(self.current_token.value)
             self.eat(INTEGER)
- 
+
+        while self.current_token.type == EMPTY:
+            self.eat(EMPTY)
 
         op = self.current_token
         self.eat(PLUS)
         
+        while self.current_token.type == EMPTY:
+            self.eat(EMPTY)
+
         while self.current_token.type == INTEGER:
             right.append(self.current_token.value)
             self.eat(INTEGER)
