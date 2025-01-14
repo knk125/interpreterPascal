@@ -1,4 +1,4 @@
-INTEGER,PLUS,EOF,EMPTY = 'INTEGER','PLUS','EOF','EMPTY'
+INTEGER,PLUS,EOF,EMPTY,MINUS, MULTI, DIV = 'INTEGER','PLUS','EOF','EMPTY','MINUS','MULTI','DIV'
 
 class Token(object):
 
@@ -29,40 +29,57 @@ class Interpreter(object):
         self.text = text
         self.pos = 0
         self.current_token = None
+        self.current_char = self.text[self.pos]
     
     def error(self):
         raise Exception('Error parsing input')
+
+    def advance(self):
+        #get the curent_char variable
+        self.pos += 1
+        if self.pos> len(self.text)-1:
+            self.current_char = None
+        else:
+            self.current_char = self.text[self.pos]
+
+    def skip_whitespace(self):
+        while self.current_char is not None and self.current_char.isspace():
+            self.advance()
+    
+    def integer(self):
+        # return a multidigit integer
+        result=''
+        while self.current_char is not None and self.current_char.isdigit():
+            result += self.current_char
+            self.advance()
+        return int(result)
     
     def get_next_token(self):
+        while self.current_char is not None:
 
-        text = self.text
+            if self.current_char.isspace():
+                self.skip_whitespace()
+                continue
 
-        # If we are at the end of the text return end-of-file token
-        if self.pos > len(text) - 1:
-            return Token(EOF,None)
-        
-        # Get the character at a position and assign a value
-        current_char = text[self.pos]
+            if self.current_char.isdigit():
+                return Token(INTEGER, self.integer())
+            elif self.current_char == '+':
+                self.advance()
+                return Token(PLUS, '+')
+            elif self.current_char == '-':
+                self.advance()
+                return Token(MINUS, '-')
+            elif self.current_char == '*':
+                self.advance()
+                return Token(MULTI, '*')
+            elif self.current_char == '/':
+                self.advance()
+                return Token (DIV, '/')
 
-        if current_char.isdigit():
-            token = Token(INTEGER, int(current_char))
-            self.pos += 1
-            return token
-        
-        if current_char == '+':
-            token = Token(PLUS, current_char)
-            self.pos +=1
-            return token
-        
-        if current_char == ' ':
-            token = Token(EMPTY, current_char)
-            self.pos +=1
-            return token
-        
-        
-        
+            self.error()
 
-        self.error()
+        return Token(EOF, None)
+
 
     def eat(self, token_type):
         if self.current_token.type == token_type:
@@ -72,42 +89,44 @@ class Interpreter(object):
     
 
     def expr(self):
+        
+        
+        # set current token to the first token taken from the input
         self.current_token = self.get_next_token()
-        
-        left = []
-        right = []
-        
-        while self.current_token.type == INTEGER :
-            
-            left.append(self.current_token.value)
+
+        # we expect the current token to be an integer
+        left = self.current_token
+        self.eat(INTEGER)
+        while(self.current_char is not None):
+
+            # we expect the current token to be either a '+' or '-'
+            op = self.current_token
+            if op.type == PLUS:
+                self.eat(PLUS)
+            elif op.type == MINUS:
+                self.eat(MINUS)
+            elif op.type == MULTI:
+                self.eat(MULTI)
+            elif op.type == DIV:
+                self.eat(DIV)
+
+            # we expect the current token to be an integer
+            right = self.current_token
             self.eat(INTEGER)
 
-        while self.current_token.type == EMPTY:
-            self.eat(EMPTY)
+            if op.type == PLUS:
+                result = left.value + right.value
+            elif op.type == MINUS:
+                result = left.value - right.value
+            elif op.type == MULTI:
+                result = left.value*right.value
+            elif op.type == DIV:
+                result = left.value/right.value
 
-        op = self.current_token
-        self.eat(PLUS)
-        
-        while self.current_token.type == EMPTY:
-            self.eat(EMPTY)
-
-        while self.current_token.type == INTEGER:
-            right.append(self.current_token.value)
-            self.eat(INTEGER)
-
-    
-        left_int = 0  
-        right_int = 0
-        
-        for i in range(len(left)-1,0-1, -1):
-            left_int += left[i]*pow(10,len(left)-1-i)
-
-        for i in range(len(right)-1,0-1,-1):
-            right_int += right[i]*pow(10,len(right)-1-i)
-
-        result = left_int + right_int
-
+            left.value = result
+   
         return result
+
         
 def main():
     while True:
